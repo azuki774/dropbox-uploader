@@ -30,7 +30,8 @@ to quickly create a Cobra application.`,
 func init() {
 	rootCmd.AddCommand(uploadCmd)
 	fl := uploadCmd.Flags()
-	fl.BoolVarP(&opt.OverWrite, "overwrite", "o", false, "overwrite if exists same name file")
+	fl.BoolVarP(&opt.Overwrite, "overwrite", "o", false, "overwrite if exists same name file")
+	fl.BoolVarP(&opt.Update, "update", "u", false, "update when exists same name file if it has an newer timestump.")
 	fl.StringVarP(&opt.SrcDir, "src-dir", "s", "", "source file or directory")
 	fl.StringVarP(&opt.DstDir, "dst-dir", "d", "", "Dropbox target directory")
 	fl.StringVarP(&opt.AccessToken, "token", "t", "", "Dropbox access token")
