@@ -1,10 +1,14 @@
 package cmd
 
 import (
+	"azuki774/dropbox-uploader/internal/logger"
+	"azuki774/dropbox-uploader/internal/uploader"
 	"fmt"
 
 	"github.com/spf13/cobra"
 )
+
+var opt uploader.UploadOption
 
 // uploadCmd represents the upload command
 var uploadCmd = &cobra.Command{
@@ -16,21 +20,28 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("upload called")
+	SilenceUsage:  true,
+	SilenceErrors: true,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return runUpload(&opt)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(uploadCmd)
+	fl := uploadCmd.Flags()
+	fl.BoolVarP(&opt.OverWrite, "overwrite", "o", false, "overwrite if exists same name file")
+	fl.StringVarP(&opt.SrcDir, "src-dir", "s", "", "source file or directory")
+	fl.StringVarP(&opt.DstDir, "dst-dir", "d", "", "Dropbox target directory")
+	fl.StringVarP(&opt.AccessToken, "token", "t", "", "Dropbox access token")
+}
 
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// uploadCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// uploadCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+func runUpload(opt *uploader.UploadOption) (err error) {
+	opt.Logger, err = logger.NewLogger()
+	if err != nil {
+		fmt.Println("logger initialize error: %w", err)
+		return err
+	}
+	defer opt.Logger.Sync()
+	return uploader.Run(opt)
 }
