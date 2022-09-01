@@ -2,14 +2,12 @@ package uploader
 
 import "os"
 
-type MockosFileContent struct{}
-
-func NewMockOsFileContent() *MockosFileContent {
-	return &MockosFileContent{}
+type MockosFileContent struct {
+	OpenErr error
 }
 
 func (o *MockosFileContent) Open(path string) (content *os.File, err error) {
-	return nil, nil
+	return nil, o.OpenErr
 }
 
 func (o *MockosFileContent) Close() (err error) {

@@ -105,6 +105,20 @@ func TestUploadOperator_UploadFile(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "file open error",
+			fields: fields{
+				Logger:          lg,
+				DstDir:          "/dropbox/",
+				BaseDir:         "/var/tmp/",
+				OverwriteMode:   dropbox.ModeAdd,
+				AccessToken:     "aaaaaaaaaa",
+				ContentOperator: &MockosFileContent{OpenErr: errors.New("error")},
+				UploadClient:    &dropbox.MockUploadClient{OK: true, Err: nil},
+			},
+			args:    args{abspath: "/var/tmp/testfile"},
+			wantErr: true,
+		},
+		{
 			name: "upload failed no error",
 			fields: fields{
 				Logger:          lg,
