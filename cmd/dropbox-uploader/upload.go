@@ -35,6 +35,7 @@ func init() {
 	fl.StringVarP(&opt.SrcDir, "src-dir", "s", "", "source file or directory")
 	fl.StringVarP(&opt.DstDir, "dst-dir", "d", "", "Dropbox target directory")
 	fl.StringVarP(&opt.AccessToken, "token", "t", "", "Dropbox access token")
+	fl.BoolVarP(&opt.Dryrun, "dry-run", "", false, "dry run")
 }
 
 func runUpload(opt *uploader.UploadOption) (err error) {

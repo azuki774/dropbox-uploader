@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"go.uber.org/zap"
 )
@@ -18,28 +17,30 @@ type UploadOption struct {
 	Overwrite   bool
 	Update      bool
 	AccessToken string
+	Dryrun      bool
 }
 
 type UploadOperator struct {
 	Logger        *zap.Logger
 	DstDir        string // Dropbox directory
+	BaseDir       string // source based directory
 	OverwriteMode dropbox.OverwriteMode
 	AccessToken   string
 }
 
 func normalizeArgs(opt *UploadOption) (err error) {
-	// src-dir : dir/ -> /***/dir
-	// dst-dir : dir/ -> dir
+	// 	// src-dir : dir/ -> /***/dir
+	// 	// dst-dir : dir/ -> dir
 	opt.SrcDir, err = filepath.Abs(opt.SrcDir)
 	if err != nil {
 		opt.Logger.Error("failed to abs path", zap.Error(err))
 		return err
 	}
 
-	if strings.HasSuffix(opt.DstDir, "/") {
-		l := len(opt.DstDir)
-		opt.DstDir = opt.DstDir[:(l - 1)]
-	}
+	// 	if strings.HasSuffix(opt.DstDir, "/") {
+	// 		l := len(opt.DstDir)
+	// 		opt.DstDir = opt.DstDir[:(l - 1)]
+	// 	}
 
 	return nil
 }
@@ -57,12 +58,17 @@ func Run(opt *UploadOption) (err error) {
 	}
 
 	o := NewUploadOperator(opt)
+	opt.Logger.Info("upload mode", zap.String("mode", string(o.OverwriteMode)))
 
 	for _, fName := range fileList {
 		opt.Logger.Debug("process file", zap.String("filename", fName))
-		err := o.UploadFile(fName)
-		if err != nil {
-			opt.Logger.Error("failed to upload file", zap.Error(err))
+		if opt.Dryrun {
+			opt.Logger.Info("upload dry-run", zap.String("filename", fName))
+			continue
+		}
+
+		if err = o.UploadFile(fName); err != nil {
+			opt.Logger.Error("upload error", zap.Error(err))
 			return err
 		}
 	}
@@ -71,7 +77,7 @@ func Run(opt *UploadOption) (err error) {
 }
 
 func NewUploadOperator(opt *UploadOption) *UploadOperator {
-	Upop := UploadOperator{Logger: opt.Logger, DstDir: opt.DstDir, AccessToken: opt.AccessToken}
+	Upop := UploadOperator{Logger: opt.Logger, BaseDir: filepath.Dir(opt.SrcDir), DstDir: opt.DstDir, AccessToken: opt.AccessToken}
 
 	Upop.OverwriteMode = dropbox.ModeAdd
 	if opt.Overwrite {
@@ -86,12 +92,18 @@ func NewUploadOperator(opt *UploadOption) *UploadOperator {
 }
 
 // UploadFile uploads srcFile(full-path) to dropbox
-func (o *UploadOperator) UploadFile(srcFile string) (err error) {
-	content, err := os.Open(srcFile)
+func (o *UploadOperator) UploadFile(abspath string) (err error) {
+	content, err := os.Open(abspath)
 	if err != nil {
 		return err
 	}
 	defer content.Close()
+
+	// abs path -> relative path
+	srcFile, err := filepath.Rel(o.BaseDir, abspath)
+	if err != nil {
+		return err
+	}
 
 	req, err := dropbox.CreateUploadRequest(o.Logger, content, o.AccessToken, o.OverwriteMode, srcFile, o.DstDir)
 	if err != nil {
@@ -99,40 +111,54 @@ func (o *UploadOperator) UploadFile(srcFile string) (err error) {
 	}
 
 	client := new(http.Client)
-	_, err = client.Do(req)
+	res, err := client.Do(req)
 	if err != nil {
 		return err
 	}
 
+	ok, err := dropbox.ParseUploadResponse(o.Logger, res)
+	if err != nil {
+		o.Logger.Error("failed to parse response", zap.Error(err))
+		return err
+	}
+
+	if !ok {
+		o.Logger.Warn("failed to upload", zap.String("filename", abspath))
+	}
 	return nil
 }
 
 // checkSrcDir returns a file-fullpath list which should upload.
 func checkSrcDir(abspath string) ([]string, error) {
+	fList := []string{}
 	fInfo, err := os.Stat(abspath)
 	if err != nil {
 		return []string{}, err
 	}
 
+	// return if file
 	if !fInfo.IsDir() {
-		// file
-		fName, err := filepath.Abs(abspath)
-		if err != nil {
-			return []string{}, err
-		}
-		return []string{fName}, nil
+		return []string{abspath}, nil
 	}
 
 	// directory
-	fList := []string{}
+
 	files, err := ioutil.ReadDir(abspath)
 	if err != nil {
 		return []string{}, err
 	}
 
 	for _, f := range files {
-		fName := abspath + "/" + f.Name()
-		fList = append(fList, fName)
+		if f.IsDir() {
+			addFList, err := checkSrcDir(filepath.Join(abspath, f.Name()))
+			if err != nil {
+				return []string{}, err
+			}
+
+			fList = append(fList, addFList...)
+			continue
+		}
+		fList = append(fList, filepath.Join(abspath, f.Name()))
 	}
 
 	return fList, err

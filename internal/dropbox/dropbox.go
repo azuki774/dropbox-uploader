@@ -3,6 +3,7 @@ package dropbox
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -67,7 +68,7 @@ func CreateUploadRequest(l *zap.Logger, content *os.File, token string, mode Ove
 		Autorename:     false,
 		Mode:           string(mode),
 		Mute:           false,
-		Path:           dstdir + "/" + filepath.Base(srcFile),
+		Path:           filepath.Join(dstdir, srcFile),
 		StrictConflict: false,
 	}
 	apiArgsBytes, err := json.Marshal(apiArgs)
@@ -82,4 +83,26 @@ func CreateUploadRequest(l *zap.Logger, content *os.File, token string, mode Ove
 	req.Header.Set("Dropbox-API-Arg", apiArgsString)
 
 	return req, nil
+}
+
+func ParseUploadResponse(l *zap.Logger, r *http.Response) (ok bool, err error) {
+	if r.StatusCode != 200 {
+		l.Info("upload failed", zap.Int("status_code", r.StatusCode))
+		return false, nil
+	}
+
+	// 200 ok
+	res := &UploadResponseOK{}
+	b, err := io.ReadAll(r.Body)
+	if err != nil {
+		return false, err
+	}
+	err = json.Unmarshal(b, &res)
+	if err != nil {
+		return false, err
+	}
+
+	l.Info("upload sucess", zap.String("path_display", res.PathDisplay), zap.Time("server_modified", res.ServerModified))
+
+	return true, nil
 }
