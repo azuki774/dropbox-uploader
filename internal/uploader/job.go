@@ -3,7 +3,6 @@ package uploader
 import (
 	"azuki774/dropbox-uploader/internal/dropbox"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"path/filepath"
 
@@ -21,11 +20,13 @@ type UploadOption struct {
 }
 
 type UploadOperator struct {
-	Logger        *zap.Logger
-	DstDir        string // Dropbox directory
-	BaseDir       string // source based directory
-	OverwriteMode dropbox.OverwriteMode
-	AccessToken   string
+	Logger          *zap.Logger
+	DstDir          string // Dropbox directory
+	BaseDir         string // source based directory
+	OverwriteMode   dropbox.OverwriteMode
+	AccessToken     string
+	ContentOperator FileContentOperator
+	UploadClient    dropbox.UploadClient
 }
 
 func normalizeArgs(opt *UploadOption) (err error) {
@@ -36,12 +37,6 @@ func normalizeArgs(opt *UploadOption) (err error) {
 		opt.Logger.Error("failed to abs path", zap.Error(err))
 		return err
 	}
-
-	// 	if strings.HasSuffix(opt.DstDir, "/") {
-	// 		l := len(opt.DstDir)
-	// 		opt.DstDir = opt.DstDir[:(l - 1)]
-	// 	}
-
 	return nil
 }
 
@@ -88,41 +83,35 @@ func NewUploadOperator(opt *UploadOption) *UploadOperator {
 		Upop.OverwriteMode = dropbox.ModeUpdate
 	}
 
+	Upop.ContentOperator = NewOsFileContent()
+	Upop.UploadClient = dropbox.NewUploadClient(opt.Logger, opt.AccessToken, Upop.OverwriteMode)
 	return &Upop
 }
 
 // UploadFile uploads srcFile(full-path) to dropbox
 func (o *UploadOperator) UploadFile(abspath string) (err error) {
-	content, err := os.Open(abspath)
+	content, err := o.ContentOperator.Open(abspath)
 	if err != nil {
 		return err
 	}
-	defer content.Close()
+	defer o.ContentOperator.Close()
 
-	// abs path -> relative path
+	// abs path -> dropbox-relative path
 	srcFile, err := filepath.Rel(o.BaseDir, abspath)
 	if err != nil {
 		return err
 	}
 
-	req, err := dropbox.CreateUploadRequest(o.Logger, content, o.AccessToken, o.OverwriteMode, srcFile, o.DstDir)
-	if err != nil {
-		return err
-	}
+	ok, err := o.UploadClient.Upload(srcFile, o.DstDir, content)
 
-	client := new(http.Client)
-	res, err := client.Do(req)
 	if err != nil {
-		return err
-	}
-
-	ok, err := dropbox.ParseUploadResponse(o.Logger, res)
-	if err != nil {
-		o.Logger.Error("failed to parse response", zap.Error(err))
+		// can not continue upload error
+		o.Logger.Error("failed to upload error", zap.String("filename", abspath), zap.Error(err))
 		return err
 	}
 
 	if !ok {
+		// upload error, but continue
 		o.Logger.Warn("failed to upload", zap.String("filename", abspath))
 	}
 	return nil

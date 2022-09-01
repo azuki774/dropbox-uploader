@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"time"
 
 	"go.uber.org/zap"
 )
@@ -22,48 +21,51 @@ const (
 	UploadEndPoint = "https://content.dropboxapi.com/2/files/upload"
 )
 
-type UploadRequest struct {
-	Autorename     bool   `json:"autorename"`
-	Mode           string `json:"mode"`
-	Mute           bool   `json:"mute"`
-	Path           string `json:"path"`
-	StrictConflict bool   `json:"strict_conflict"`
+type UploadClient interface {
+	Upload(srcFile string, dstdir string, content *os.File) (ok bool, err error)
 }
 
-type UploadResponseOK struct {
-	ClientModified time.Time `json:"client_modified"`
-	ContentHash    string    `json:"content_hash"`
-	FileLockInfo   struct {
-		Created        time.Time `json:"created"`
-		IsLockholder   bool      `json:"is_lockholder"`
-		LockholderName string    `json:"lockholder_name"`
-	} `json:"file_lock_info"`
-	HasExplicitSharedMembers bool   `json:"has_explicit_shared_members"`
-	ID                       string `json:"id"`
-	IsDownloadable           bool   `json:"is_downloadable"`
-	Name                     string `json:"name"`
-	PathDisplay              string `json:"path_display"`
-	PathLower                string `json:"path_lower"`
-	PropertyGroups           []struct {
-		Fields []struct {
-			Name  string `json:"name"`
-			Value string `json:"value"`
-		} `json:"fields"`
-		TemplateID string `json:"template_id"`
-	} `json:"property_groups"`
-	Rev            string    `json:"rev"`
-	ServerModified time.Time `json:"server_modified"`
-	SharingInfo    struct {
-		ModifiedBy           string `json:"modified_by"`
-		ParentSharedFolderID string `json:"parent_shared_folder_id"`
-		ReadOnly             bool   `json:"read_only"`
-	} `json:"sharing_info"`
-	Size int `json:"size"`
+type uploadClient struct {
+	logger *zap.Logger
+	token  string
+	mode   OverwriteMode
+}
+
+func NewUploadClient(l *zap.Logger, token string, mode OverwriteMode) *uploadClient {
+	return &uploadClient{
+		logger: l,
+		token:  token,
+		mode:   mode,
+	}
+}
+
+// Upload returns ok, err
+// ok .. upload status
+// err .. can continue uploading
+func (u *uploadClient) Upload(srcFile string, dstdir string, content *os.File) (ok bool, err error) {
+	req, err := createUploadRequest(u.logger, content, u.token, u.mode, srcFile, dstdir)
+	if err != nil {
+		return false, err
+	}
+
+	client := new(http.Client)
+	res, err := client.Do(req)
+	if err != nil {
+		return false, err
+	}
+
+	ok, err = parseUploadResponse(u.logger, res)
+	if err != nil {
+		u.logger.Error("failed to parse response", zap.Error(err))
+		return false, err
+	}
+
+	return ok, nil
 }
 
 // CreateUploadRequest creates http.Request for uploading dropbox.
 // dst-dir must not include '/' at the end of URL.
-func CreateUploadRequest(l *zap.Logger, content *os.File, token string, mode OverwriteMode, srcFile string, dstdir string) (*http.Request, error) {
+func createUploadRequest(l *zap.Logger, content *os.File, token string, mode OverwriteMode, srcFile string, dstdir string) (*http.Request, error) {
 	apiArgs := UploadRequest{
 		Autorename:     false,
 		Mode:           string(mode),
@@ -85,7 +87,7 @@ func CreateUploadRequest(l *zap.Logger, content *os.File, token string, mode Ove
 	return req, nil
 }
 
-func ParseUploadResponse(l *zap.Logger, r *http.Response) (ok bool, err error) {
+func parseUploadResponse(l *zap.Logger, r *http.Response) (ok bool, err error) {
 	if r.StatusCode != 200 {
 		l.Info("upload failed", zap.Int("status_code", r.StatusCode))
 		return false, nil
@@ -102,7 +104,7 @@ func ParseUploadResponse(l *zap.Logger, r *http.Response) (ok bool, err error) {
 		return false, err
 	}
 
-	l.Info("upload sucess", zap.String("path_display", res.PathDisplay), zap.Time("server_modified", res.ServerModified))
+	l.Info("upload success", zap.String("path_display", res.PathDisplay), zap.Time("server_modified", res.ServerModified))
 
 	return true, nil
 }
