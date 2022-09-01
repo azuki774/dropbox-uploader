@@ -56,7 +56,6 @@ func (u *uploadClient) Upload(srcFile string, dstdir string, content *os.File) (
 
 	ok, err = parseUploadResponse(u.logger, res)
 	if err != nil {
-		u.logger.Error("failed to parse response", zap.Error(err))
 		return false, err
 	}
 
@@ -89,8 +88,8 @@ func createUploadRequest(l *zap.Logger, content *os.File, token string, mode Ove
 
 func parseUploadResponse(l *zap.Logger, r *http.Response) (ok bool, err error) {
 	if r.StatusCode != 200 {
-		l.Info("upload failed", zap.Int("status_code", r.StatusCode))
-		return false, nil
+		l.Error("upload failed", zap.Int("status_code", r.StatusCode))
+		return false, err
 	}
 
 	// 200 ok
