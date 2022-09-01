@@ -13,7 +13,10 @@ type UploadOptions struct {
 }
 
 func NewLogger() (Logger *zap.Logger, err error) {
-	l, err := zap.NewProduction()
+	config := zap.NewProductionConfig()
+	// config.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
+	l, err := config.Build()
+
 	l.WithOptions(zap.AddStacktrace(zap.ErrorLevel))
 	return l, err
 }

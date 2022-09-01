@@ -1,13 +1,11 @@
 package dropbox
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
-	"mime/multipart"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 
 	"go.uber.org/zap"
@@ -20,8 +18,7 @@ const (
 	ModeUpdate    = OverwriteMode("update")
 	ModeOverWrite = OverwriteMode("overwrite")
 
-	// UploadEndPoint = "https://content.dropboxapi.com/2/files/upload"
-	UploadEndPoint = "https://test.azk.home"
+	UploadEndPoint = "https://content.dropboxapi.com/2/files/upload"
 )
 
 type UploadRequest struct {
@@ -32,7 +29,7 @@ type UploadRequest struct {
 	StrictConflict bool   `json:"strict_conflict"`
 }
 
-type UploadResponse struct {
+type UploadResponseOK struct {
 	ClientModified time.Time `json:"client_modified"`
 	ContentHash    string    `json:"content_hash"`
 	FileLockInfo   struct {
@@ -63,17 +60,14 @@ type UploadResponse struct {
 	Size int `json:"size"`
 }
 
-func CreateUploadRequest(l *zap.Logger, token string, mode OverwriteMode, srcfile string, dstdir string) (*http.Request, error) {
-	bodyBuf, err := createUploadBody(srcfile)
-	if err != nil {
-		return nil, err
-	}
-
+// CreateUploadRequest creates http.Request for uploading dropbox.
+// dst-dir must not include '/' at the end of URL.
+func CreateUploadRequest(l *zap.Logger, content *os.File, token string, mode OverwriteMode, srcFile string, dstdir string) (*http.Request, error) {
 	apiArgs := UploadRequest{
 		Autorename:     false,
 		Mode:           string(mode),
 		Mute:           false,
-		Path:           dstdir,
+		Path:           dstdir + "/" + filepath.Base(srcFile),
 		StrictConflict: false,
 	}
 	apiArgsBytes, err := json.Marshal(apiArgs)
@@ -82,35 +76,10 @@ func CreateUploadRequest(l *zap.Logger, token string, mode OverwriteMode, srcfil
 	}
 	apiArgsString := string(apiArgsBytes)
 
-	req, _ := http.NewRequest("POST", UploadEndPoint, bodyBuf)
+	req, _ := http.NewRequest("POST", UploadEndPoint, content)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 	req.Header.Set("Content-Type", "application/octet-stream")
 	req.Header.Set("Dropbox-API-Arg", apiArgsString)
 
 	return req, nil
-}
-
-func createUploadBody(srcfile string) (bb *bytes.Buffer, err error) {
-	bodyBuf := &bytes.Buffer{}
-	bodyWriter := multipart.NewWriter(bodyBuf)
-
-	//キーとなる操作
-	fileWriter, err := bodyWriter.CreateFormFile("uploadfile", srcfile)
-	if err != nil {
-		return nil, err
-	}
-
-	fh, err := os.Open(srcfile)
-	if err != nil {
-		return nil, err
-	}
-	defer fh.Close()
-
-	_, err = io.Copy(fileWriter, fh)
-	if err != nil {
-		return nil, err
-	}
-
-	bodyWriter.Close()
-	return bodyBuf, nil
 }

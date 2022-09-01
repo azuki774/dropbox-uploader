@@ -2,11 +2,11 @@ package uploader
 
 import (
 	"azuki774/dropbox-uploader/internal/dropbox"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"go.uber.org/zap"
 )
@@ -27,16 +27,39 @@ type UploadOperator struct {
 	AccessToken   string
 }
 
+func normalizeArgs(opt *UploadOption) (err error) {
+	// src-dir : dir/ -> /***/dir
+	// dst-dir : dir/ -> dir
+	opt.SrcDir, err = filepath.Abs(opt.SrcDir)
+	if err != nil {
+		opt.Logger.Error("failed to abs path", zap.Error(err))
+		return err
+	}
+
+	if strings.HasSuffix(opt.DstDir, "/") {
+		l := len(opt.DstDir)
+		opt.DstDir = opt.DstDir[:(l - 1)]
+	}
+
+	return nil
+}
+
 func Run(opt *UploadOption) (err error) {
 	opt.Logger.Info("upload job start")
+	if err := normalizeArgs(opt); err != nil {
+		return err
+	}
+
 	fileList, err := checkSrcDir(opt.SrcDir)
 	if err != nil {
 		opt.Logger.Error("failed to upload file list", zap.Error(err))
 		return err
 	}
 
+	o := NewUploadOperator(opt)
+
 	for _, fName := range fileList {
-		o := NewUploadOperator(opt)
+		opt.Logger.Debug("process file", zap.String("filename", fName))
 		err := o.UploadFile(fName)
 		if err != nil {
 			opt.Logger.Error("failed to upload file", zap.Error(err))
@@ -62,33 +85,38 @@ func NewUploadOperator(opt *UploadOption) *UploadOperator {
 	return &Upop
 }
 
-func (o *UploadOperator) UploadFile(sourceFile string) (err error) {
-	req, err := dropbox.CreateUploadRequest(o.Logger, o.AccessToken, o.OverwriteMode, sourceFile, o.DstDir)
+// UploadFile uploads srcFile(full-path) to dropbox
+func (o *UploadOperator) UploadFile(srcFile string) (err error) {
+	content, err := os.Open(srcFile)
+	if err != nil {
+		return err
+	}
+	defer content.Close()
+
+	req, err := dropbox.CreateUploadRequest(o.Logger, content, o.AccessToken, o.OverwriteMode, srcFile, o.DstDir)
 	if err != nil {
 		return err
 	}
 
 	client := new(http.Client)
-	res, err := client.Do(req)
+	_, err = client.Do(req)
 	if err != nil {
 		return err
 	}
-
-	fmt.Println(res)
 
 	return nil
 }
 
 // checkSrcDir returns a file-fullpath list which should upload.
-func checkSrcDir(path string) ([]string, error) {
-	fInfo, err := os.Stat(path)
+func checkSrcDir(abspath string) ([]string, error) {
+	fInfo, err := os.Stat(abspath)
 	if err != nil {
 		return []string{}, err
 	}
 
 	if !fInfo.IsDir() {
 		// file
-		fName, err := filepath.Abs(path)
+		fName, err := filepath.Abs(abspath)
 		if err != nil {
 			return []string{}, err
 		}
@@ -97,16 +125,13 @@ func checkSrcDir(path string) ([]string, error) {
 
 	// directory
 	fList := []string{}
-	files, err := ioutil.ReadDir(path)
+	files, err := ioutil.ReadDir(abspath)
 	if err != nil {
 		return []string{}, err
 	}
 
 	for _, f := range files {
-		fName, err := filepath.Abs(f.Name())
-		if err != nil {
-			return []string{}, err
-		}
+		fName := abspath + "/" + f.Name()
 		fList = append(fList, fName)
 	}
 
