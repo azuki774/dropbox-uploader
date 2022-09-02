@@ -7,7 +7,7 @@ build:
 	docker build -t azuki774/$(CONTAINER_NAME):latest -f build/Dockerfile .
 
 bin:
-	go build -o $(BIN_DIR)/ ./...
+	CGO_ENABLED=0 go build -o $(BIN_DIR)/ .
 
 test:
 	go test -v ./...
