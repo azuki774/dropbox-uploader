@@ -23,6 +23,11 @@ Flags:
   -u, --update           update when exists same name file if it has an newer timestump.
 ```
 
+## Docker Usage
+```
+$ docker run -v <host-source-dir>:<source-dir> azuki774/dropbox-uploader -t <token> -s <source-dir> -d <dropbox-target-dir>
+```
+
 ## Get Token
 1. Create you app
 https://www.dropbox.com/developers/apps/create?_tk=pilot_lp&_ad=ctabtn1&_camp=create
