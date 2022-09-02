@@ -4,7 +4,7 @@ CONTAINER_NAME:=azuki774/dropbox-uploader
 
 build:
 	make bin
-	docker build -t azuki774/$(CONTAINER_NAME):latest -f build/Dockerfile .
+	docker build -t $(CONTAINER_NAME):latest -f build/Dockerfile .
 
 bin:
 	CGO_ENABLED=0 go build -o $(BIN_DIR)/ .
