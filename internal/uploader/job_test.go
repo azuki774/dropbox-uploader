@@ -8,7 +8,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/jarcoal/httpmock"
 	"go.uber.org/zap"
 )
 
@@ -16,13 +15,6 @@ var lg *zap.Logger
 
 func TestMain(m *testing.M) {
 	lg, _ = logger.NewLogger()
-	// http-mock setup
-	httpmock.Activate()
-	defer httpmock.DeactivateAndReset()
-	httpmock.RegisterResponder("POST", dropbox.UploadEndPoint,
-		httpmock.NewStringResponder(200, "mocked"),
-	)
-
 	m.Run()
 }
 func Test_checkSrcDir(t *testing.T) {

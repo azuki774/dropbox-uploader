@@ -26,16 +26,18 @@ type UploadClient interface {
 }
 
 type uploadClient struct {
-	logger *zap.Logger
-	token  string
-	mode   OverwriteMode
+	logger   *zap.Logger
+	token    string
+	mode     OverwriteMode
+	endpoint string // url
 }
 
 func NewUploadClient(l *zap.Logger, token string, mode OverwriteMode) *uploadClient {
 	return &uploadClient{
-		logger: l,
-		token:  token,
-		mode:   mode,
+		logger:   l,
+		token:    token,
+		mode:     mode,
+		endpoint: UploadEndPoint,
 	}
 }
 
@@ -43,7 +45,7 @@ func NewUploadClient(l *zap.Logger, token string, mode OverwriteMode) *uploadCli
 // ok .. upload status
 // err .. can continue uploading
 func (u *uploadClient) Upload(srcFile string, dstdir string, content *os.File) (ok bool, err error) {
-	req, err := createUploadRequest(u.logger, content, u.token, u.mode, srcFile, dstdir)
+	req, err := createUploadRequest(u.logger, content, u.endpoint, u.token, u.mode, srcFile, dstdir)
 	if err != nil {
 		return false, err
 	}
@@ -63,8 +65,7 @@ func (u *uploadClient) Upload(srcFile string, dstdir string, content *os.File) (
 }
 
 // CreateUploadRequest creates http.Request for uploading dropbox.
-// dst-dir must not include '/' at the end of URL.
-func createUploadRequest(l *zap.Logger, content *os.File, token string, mode OverwriteMode, srcFile string, dstdir string) (*http.Request, error) {
+func createUploadRequest(l *zap.Logger, content *os.File, endpoint string, token string, mode OverwriteMode, srcFile string, dstdir string) (*http.Request, error) {
 	apiArgs := UploadRequest{
 		Autorename:     false,
 		Mode:           string(mode),
@@ -78,7 +79,7 @@ func createUploadRequest(l *zap.Logger, content *os.File, token string, mode Ove
 	}
 	apiArgsString := string(apiArgsBytes)
 
-	req, _ := http.NewRequest("POST", UploadEndPoint, content)
+	req, _ := http.NewRequest("POST", endpoint, content)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 	req.Header.Set("Content-Type", "application/octet-stream")
 	req.Header.Set("Dropbox-API-Arg", apiArgsString)
