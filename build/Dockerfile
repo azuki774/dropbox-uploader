@@ -1,5 +1,7 @@
 FROM alpine:3.7
 ADD build/bin/dropbox-uploader /usr/local/bin/dropbox-uploader
-# Copy source directory set /data/
-ENTRYPOINT ["/usr/local/bin/dropbox-uploader", "upload"]
-CMD ["-t", "<token>", "-s", "<src-dir> ", "-d", "<dst-dir>"]
+RUN apk --no-cache add tzdata && \
+    cp /usr/share/zoneinfo/Asia/Tokyo /etc/localtime
+
+ENTRYPOINT ["/usr/local/bin/dropbox-uploader", "start"]
+
