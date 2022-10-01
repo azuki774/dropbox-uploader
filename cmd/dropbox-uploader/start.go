@@ -5,6 +5,7 @@ import (
 	"azuki774/dropbox-uploader/internal/logger"
 	"fmt"
 
+	"github.com/robfig/cron/v3"
 	"github.com/spf13/cobra"
 )
 
@@ -38,6 +39,11 @@ to quickly create a Cobra application.`,
 		if err != nil {
 			return err
 		}
+
+		c := cron.New()
+		c.AddFunc("@hourly", func() { us.GetNewAccessToken() })
+		c.Start()
+
 		return nil
 	},
 }
