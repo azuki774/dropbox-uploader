@@ -43,5 +43,5 @@ func NewNewTokenClient() (c client.NewTokenClient, err error) {
 }
 
 func NewServer(l *zap.Logger, us *usecases.Usecases) server.Server {
-	return server.Server{Host: "", Port: "8080", Logger: l, Usecase: us}
+	return server.Server{Host: "", Port: "80", Logger: l, Usecase: us}
 }

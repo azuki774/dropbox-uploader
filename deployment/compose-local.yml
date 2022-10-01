@@ -1,0 +1,10 @@
+version: '3'
+services:
+  server:
+    image: azuki774/dropbox-uploader
+    container_name: dropbox-uploader
+    restart: always
+    env_file:
+      - envfile
+    ports:
+      - "8080:80"
