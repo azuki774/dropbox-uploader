@@ -7,10 +7,7 @@ import (
 )
 
 func init() {
-	jst, err := time.LoadLocation("Asia/Tokyo")
-	if err != nil {
-		panic(err)
-	}
+	jst := time.FixedZone("Asia/Tokyo", 9*60*60)
 	time.Local = jst
 }
 
