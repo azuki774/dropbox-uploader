@@ -1,40 +1,31 @@
 # dropbox-uploader
+dropbox-uploader provides a server for uploading dropbox.
+- Usage
+  ```
+  $ curl -XPOST -F "file=@<upload file>" http://localhost:8080/upload?path=<dropbox path>
+  ```
+  - Ex. `curl -XPOST -F "file=testimage.jpg" http://localhost:8080/upload?path=/testpath/testimage.jpg`
 
-## Usage
+This program uses unonfficial SDK for Go : https://github.com/dropbox/dropbox-sdk-go-unofficial
+
+## Docker Usage (Use docker compose)
 ```
-~/work/dropbox-uploader/build/bin$ ./dropbox-uploader upload -h
-A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.
-
-Usage:
-  dropbox-uploader upload [flags]
-
-Flags:
-      --dry-run          dry run
-  -d, --dst-dir string   Dropbox target directory
-  -h, --help             help for upload
-  -o, --overwrite        overwrite if exists same name file
-  -s, --src-dir string   source file or directory
-  -t, --token string     Dropbox access token
-  -u, --update           update when exists same name file if it has an newer timestump.
+$ make start
 ```
 
-## Docker Usage
+## Get Token and Setting Environment
+1. Regist Your app
 ```
-$ docker run -v <host-source-dir>:<source-dir> azuki774/dropbox-uploader -t <token> -s <source-dir> -d <dropbox-target-dir>
+https://www.dropbox.com/oauth2/authorize?client_id=<your App key>&response_type=code&token_access_type=offline
 ```
 
-## Get Token
-1. Create you app
-https://www.dropbox.com/developers/apps/create?_tk=pilot_lp&_ad=ctabtn1&_camp=create
-    - Scoped access _> Full Dropbox -> Name your app
+2. Get Refresh Token
+```
+curl https://api.dropbox.com/oauth2/token \
+    -d code=<your got 1. code> \
+    -d grant_type=authorization_code \
+    -u <your app key>:<your secret>
+```
 
-2. Add Permission
-    - Permissions -> Check "files.content.write, files.content.read"
-
-3. Get Token
-    - Settings -> Generated access token
+3. Set Your information
+- `/deployment/envfile`
