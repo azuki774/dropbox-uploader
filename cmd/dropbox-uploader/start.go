@@ -35,6 +35,8 @@ to quickly create a Cobra application.`,
 			return err
 		}
 		us := factory.NewUsecases(l, client, newTokenClient)
+		srv := factory.NewServer(l, us)
+
 		err = us.GetNewAccessToken()
 		if err != nil {
 			return err
@@ -43,6 +45,11 @@ to quickly create a Cobra application.`,
 		c := cron.New()
 		c.AddFunc("@hourly", func() { us.GetNewAccessToken() })
 		c.Start()
+
+		err = srv.Start()
+		if err != nil {
+			return err
+		}
 
 		return nil
 	},

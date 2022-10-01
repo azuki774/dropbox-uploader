@@ -2,6 +2,7 @@ package factory
 
 import (
 	"azuki774/dropbox-uploader/internal/client"
+	"azuki774/dropbox-uploader/internal/server"
 	"azuki774/dropbox-uploader/internal/usecases"
 	"fmt"
 	"net/http"
@@ -39,4 +40,8 @@ func NewNewTokenClient() (c client.NewTokenClient, err error) {
 
 	c = client.NewTokenClient{Client: &http.Client{}, RefreshToken: reftoken, AppKey: appKey, AppSecret: appSecret}
 	return c, nil
+}
+
+func NewServer(l *zap.Logger, us *usecases.Usecases) server.Server {
+	return server.Server{Host: "", Port: "8080", Logger: l, Usecase: us}
 }

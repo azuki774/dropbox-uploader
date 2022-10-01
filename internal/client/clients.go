@@ -1,6 +1,8 @@
 package client
 
 import (
+	"io"
+
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
 )
@@ -16,4 +18,14 @@ func (c *Client) RenewClient(newToken string) {
 	}
 	dbxFilesImpl := files.New(config)
 	c.dbxFiles = &dbxFilesImpl
+}
+
+func (c *Client) UploadFile(path string, content io.Reader) (err error) {
+	d := *(c.dbxFiles)
+	arg := files.NewUploadArg(path)
+	_, err = d.Upload(arg, content)
+	if err != nil {
+		return err
+	}
+	return nil
 }

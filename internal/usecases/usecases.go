@@ -2,12 +2,14 @@ package usecases
 
 import (
 	"azuki774/dropbox-uploader/internal/model"
+	"io"
 
 	"go.uber.org/zap"
 )
 
 type Client interface {
 	RenewClient(newToken string)
+	UploadFile(path string, content io.Reader) (err error)
 }
 
 type NewTokenClient interface {
@@ -28,6 +30,15 @@ func (u *Usecases) GetNewAccessToken() (err error) {
 	}
 
 	u.Client.RenewClient(resp.AccessToken)
-	u.Logger.Info("get new access token", zap.String("access_token", resp.AccessToken))
+	u.Logger.Info("update new access token", zap.String("access_token", resp.AccessToken))
+	return nil
+}
+
+func (u *Usecases) UploadFile(path string, file io.Reader) (err error) {
+	err = u.Client.UploadFile(path, file)
+	if err != nil {
+		u.Logger.Error("failed to upload file", zap.Error(err))
+		return err
+	}
 	return nil
 }
