@@ -30,7 +30,9 @@ func (s *Server) addRecordFunc(r *mux.Router) {
 
 func (s *Server) middlewareLogging(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		s.Logger.Info("access", zap.String("url", r.URL.Path), zap.String("X-Forwarded-For", r.Header.Get("X-Forwarded-For")))
+		if r.URL.Path != "/" {
+			s.Logger.Info("access", zap.String("url", r.URL.Path), zap.String("X-Forwarded-For", r.Header.Get("X-Forwarded-For")))
+		}
 		h.ServeHTTP(w, r)
 	})
 }
