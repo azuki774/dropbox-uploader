@@ -40,5 +40,6 @@ func (u *Usecases) UploadFile(path string, file io.Reader) (err error) {
 		u.Logger.Error("failed to upload file", zap.Error(err))
 		return err
 	}
+	u.Logger.Info("upload file", zap.String("path", path))
 	return nil
 }
