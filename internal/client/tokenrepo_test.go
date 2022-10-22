@@ -18,6 +18,12 @@ var (
 )
 
 func TestMain(m *testing.M) {
+	jst, err := time.LoadLocation("Asia/Tokyo")
+	if err != nil {
+		panic(err)
+	}
+	time.Local = jst
+
 	testTokenRepoGet := model.OAuth2Get{
 		TokenName:    "tokenname",
 		AccessToken:  "accesstoken",
