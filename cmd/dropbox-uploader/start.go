@@ -44,7 +44,9 @@ to quickly create a Cobra application.`,
 			fmt.Println(err)
 			return err
 		}
-		us := factory.NewUsecases(l, client, newTokenClient)
+
+		tkRepo := factory.NewTokenRepo(startOpt.RepoInfo.Host, startOpt.RepoInfo.Port)
+		us := factory.NewUsecases(l, client, newTokenClient, tkRepo)
 		srv := factory.NewServer(l, us)
 
 		err = us.GetNewAccessToken()

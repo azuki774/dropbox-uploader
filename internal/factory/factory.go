@@ -11,8 +11,8 @@ import (
 	"go.uber.org/zap"
 )
 
-func NewUsecases(logger *zap.Logger, client client.Client, nclient client.NewTokenClient) *usecases.Usecases {
-	return &usecases.Usecases{Logger: logger, Client: &client, NewTokenClient: &nclient}
+func NewUsecases(logger *zap.Logger, client client.Client, nclient client.NewTokenClient, tkRepo client.TokenRepo) *usecases.Usecases {
+	return &usecases.Usecases{Logger: logger, Client: &client, NewTokenClient: &nclient, TokenRepo: &tkRepo}
 }
 
 func NewClient() client.Client {
