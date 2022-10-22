@@ -23,8 +23,8 @@ func NewNewTokenClient(tr client.TokenRepo) (c client.NewTokenClient, err error)
 	// Refresh Token
 	oa, err := tr.Get()
 	if err != nil {
-		fmt.Println("failed to get refresh_token from repository")
-		return client.NewTokenClient{}, nil
+		fmt.Printf("failed to get refresh_token from repository: %s\n", err.Error())
+		return client.NewTokenClient{}, err
 	}
 	refToken := oa.RefreshToken
 
