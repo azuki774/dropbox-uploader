@@ -45,3 +45,7 @@ func NewNewTokenClient() (c client.NewTokenClient, err error) {
 func NewServer(l *zap.Logger, us *usecases.Usecases) server.Server {
 	return server.Server{Host: "", Port: "80", Logger: l, Usecase: us}
 }
+
+func NewTokenRepo(host string, port string) client.TokenRepo {
+	return client.TokenRepo{Host: host, Port: port}
+}
