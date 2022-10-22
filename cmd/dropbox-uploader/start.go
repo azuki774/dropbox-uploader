@@ -68,5 +68,5 @@ to quickly create a Cobra application.`,
 func init() {
 	rootCmd.AddCommand(startCmd)
 	startCmd.Flags().StringVar(&startOpt.RepoInfo.Host, "repo-host", "localhost", "token repository host")
-	startCmd.Flags().StringVar(&startOpt.RepoInfo.Port, "repo-port", "3306", "token repositroy port")
+	startCmd.Flags().StringVar(&startOpt.RepoInfo.Port, "repo-port", "80", "token repositroy port")
 }
