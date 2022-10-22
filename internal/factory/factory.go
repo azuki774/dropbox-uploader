@@ -11,20 +11,22 @@ import (
 	"go.uber.org/zap"
 )
 
-func NewUsecases(logger *zap.Logger, client client.Client, nclient client.NewTokenClient) *usecases.Usecases {
-	return &usecases.Usecases{Logger: logger, Client: &client, NewTokenClient: &nclient}
+func NewUsecases(logger *zap.Logger, client client.Client, nclient client.NewTokenClient, tkRepo client.TokenRepo) *usecases.Usecases {
+	return &usecases.Usecases{Logger: logger, Client: &client, NewTokenClient: &nclient, TokenRepo: &tkRepo}
 }
 
 func NewClient() client.Client {
 	return client.Client{}
 }
 
-func NewNewTokenClient() (c client.NewTokenClient, err error) {
+func NewNewTokenClient(tr client.TokenRepo) (c client.NewTokenClient, err error) {
 	// Refresh Token
-	reftoken, ok := os.LookupEnv("REFRESH_TOKEN")
-	if !ok {
-		return c, fmt.Errorf("failed to load REFRESH_TOKEN")
+	oa, err := tr.Get()
+	if err != nil {
+		fmt.Printf("failed to get refresh_token from repository: %s\n", err.Error())
+		return client.NewTokenClient{}, err
 	}
+	refToken := oa.RefreshToken
 
 	// App Key
 	appKey, ok := os.LookupEnv("APP_KEY")
@@ -38,7 +40,7 @@ func NewNewTokenClient() (c client.NewTokenClient, err error) {
 		return c, fmt.Errorf("failed to load APP_SECRET")
 	}
 
-	c = client.NewTokenClient{Client: &http.Client{}, RefreshToken: reftoken, AppKey: appKey, AppSecret: appSecret}
+	c = client.NewTokenClient{Client: &http.Client{}, RefreshToken: refToken, AppKey: appKey, AppSecret: appSecret}
 	return c, nil
 }
 
