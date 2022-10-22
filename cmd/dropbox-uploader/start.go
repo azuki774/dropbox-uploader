@@ -9,6 +9,15 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type StartOption struct {
+	RepoInfo struct {
+		Host string
+		Port string
+	}
+}
+
+var startOpt StartOption
+
 // startCmd represents the upload command
 var startCmd = &cobra.Command{
 	Use:   "start",
@@ -29,7 +38,8 @@ to quickly create a Cobra application.`,
 			return err
 		}
 
-		newTokenClient, err := factory.NewNewTokenClient()
+		tr := factory.NewTokenRepo(startOpt.RepoInfo.Host, startOpt.RepoInfo.Port)
+		newTokenClient, err := factory.NewNewTokenClient(tr)
 		if err != nil {
 			fmt.Println(err)
 			return err
@@ -57,4 +67,6 @@ to quickly create a Cobra application.`,
 
 func init() {
 	rootCmd.AddCommand(startCmd)
+	startCmd.Flags().StringVar(&startOpt.RepoInfo.Host, "repo-host", "localhost", "token repository host")
+	startCmd.Flags().StringVar(&startOpt.RepoInfo.Port, "repo-port", "3306", "token repositroy port")
 }

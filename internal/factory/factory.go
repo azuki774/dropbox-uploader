@@ -19,12 +19,14 @@ func NewClient() client.Client {
 	return client.Client{}
 }
 
-func NewNewTokenClient() (c client.NewTokenClient, err error) {
+func NewNewTokenClient(tr client.TokenRepo) (c client.NewTokenClient, err error) {
 	// Refresh Token
-	reftoken, ok := os.LookupEnv("REFRESH_TOKEN")
-	if !ok {
-		return c, fmt.Errorf("failed to load REFRESH_TOKEN")
+	oa, err := tr.Get()
+	if err != nil {
+		fmt.Println("failed to get refresh_token from repository")
+		return client.NewTokenClient{}, nil
 	}
+	refToken := oa.RefreshToken
 
 	// App Key
 	appKey, ok := os.LookupEnv("APP_KEY")
@@ -38,7 +40,7 @@ func NewNewTokenClient() (c client.NewTokenClient, err error) {
 		return c, fmt.Errorf("failed to load APP_SECRET")
 	}
 
-	c = client.NewTokenClient{Client: &http.Client{}, RefreshToken: reftoken, AppKey: appKey, AppSecret: appSecret}
+	c = client.NewTokenClient{Client: &http.Client{}, RefreshToken: refToken, AppKey: appKey, AppSecret: appSecret}
 	return c, nil
 }
 
