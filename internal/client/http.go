@@ -41,5 +41,6 @@ func (n *NewTokenClient) Do() (resp model.RefreshResponse, err error) {
 		return model.RefreshResponse{}, err
 	}
 
+	resp.RefreshToken = n.RefreshToken
 	return resp, nil
 }
