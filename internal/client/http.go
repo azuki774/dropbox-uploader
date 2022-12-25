@@ -28,14 +28,14 @@ func (n *NewTokenClient) Do() (resp model.RefreshResponse, err error) {
 		return model.RefreshResponse{}, err
 	}
 	defer res.Body.Close()
-	fmt.Println(n.RefreshToken)
+	fmt.Printf("use token = %s\n", n.RefreshToken)
 
 	resBody, err := io.ReadAll(res.Body)
 	if err != nil {
 		return model.RefreshResponse{}, err
 	}
 
-	fmt.Println(resBody)
+	fmt.Println(string(resBody))
 	if res.StatusCode != 200 {
 		return model.RefreshResponse{}, fmt.Errorf("unexpected status code: %v", res.StatusCode)
 	}
