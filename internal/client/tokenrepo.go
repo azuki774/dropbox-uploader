@@ -66,7 +66,7 @@ func (t *TokenRepo) Get() (model.OAuth2Get, error) {
 		return model.OAuth2Get{}, err
 	}
 
-	if oa.RefreshToken != "" {
+	if oa.RefreshToken == "" {
 		return model.OAuth2Get{}, fmt.Errorf("unexpected refresh token: token is empty")
 	}
 
