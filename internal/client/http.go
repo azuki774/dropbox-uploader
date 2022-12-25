@@ -28,12 +28,16 @@ func (n *NewTokenClient) Do() (resp model.RefreshResponse, err error) {
 		return model.RefreshResponse{}, err
 	}
 	defer res.Body.Close()
-	if res.StatusCode != 200 {
-		return model.RefreshResponse{}, fmt.Errorf("unexpected status code: %v", res.StatusCode)
-	}
+	fmt.Println(n.RefreshToken)
+
 	resBody, err := io.ReadAll(res.Body)
 	if err != nil {
 		return model.RefreshResponse{}, err
+	}
+
+	fmt.Println(resBody)
+	if res.StatusCode != 200 {
+		return model.RefreshResponse{}, fmt.Errorf("unexpected status code: %v", res.StatusCode)
 	}
 
 	err = json.Unmarshal(resBody, &resp)
