@@ -1,7 +1,12 @@
 package client
 
 import (
+	"azuki774/dropbox-uploader/internal/model"
+	"encoding/json"
+	"fmt"
 	"io"
+	"net/http"
+	"strings"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
@@ -13,6 +18,8 @@ type Client struct {
 	// SrcRootDir   string -> usecase?
 	// DstRootDir   string
 	RefreshToken string
+	AppKey       string
+	AppSecret    string
 
 	filesClient files.Client
 	accessToken string
@@ -20,7 +27,32 @@ type Client struct {
 
 // fetchNewRefreshToken は 新しい accessTokenを取得する
 func (c *Client) fetchNewRefreshToken() (accessToken string, err error) {
-	return "", nil // TODO
+	endpoint := "https://api.dropbox.com/oauth2/token"
+	reqbody := fmt.Sprintf("refresh_token=%s&grant_type=refresh_token", c.RefreshToken)
+	reader := strings.NewReader(reqbody)
+
+	req, err := http.NewRequest("POST", endpoint, reader)
+	req.SetBasicAuth(c.AppKey, c.AppSecret)
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer res.Body.Close()
+	if res.StatusCode != 200 {
+		return "", fmt.Errorf("unexpected status code: %v", res.StatusCode)
+	}
+	resBody, err := io.ReadAll(res.Body)
+	if err != nil {
+		return "", err
+	}
+
+	var resp model.ResponseAuthTokenRefreshToken
+	err = json.Unmarshal(resBody, &resp)
+	if err != nil {
+		return "", err
+	}
+
+	return resp.AccessToken, nil
 }
 
 // newFilesClient は dropbox のfiles API 用の SDK Client を作成する
