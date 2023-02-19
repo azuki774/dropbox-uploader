@@ -4,6 +4,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var startOpt startOption
+
+type startOption struct {
+	SrcRootDir   string
+	DstRootDir   string
+	RefreshToken string
+}
+
 // startCmd represents the upload command
 var startCmd = &cobra.Command{
 	Use:   "start",
