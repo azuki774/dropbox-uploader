@@ -77,6 +77,66 @@ func TestClient_fetchNewAccessToken(t *testing.T) {
 				)
 			},
 		},
+		{
+			name: "already ok",
+			fields: fields{
+				Logger:       l,
+				RefreshToken: "superrefreshtoken",
+				AppKey:       "appkey",
+				AppSecret:    "appsecret",
+				filesClient:  nil,
+				accessToken:  "oldaccesstoken",
+			},
+			wantAccessToken: "superaccesstoken",
+			wantErr:         false,
+			setmock: func() {
+				httpmock.RegisterResponder(
+					"POST",
+					"https://api.dropbox.com/oauth2/token",
+					fetchNewRefreshTokenNormalJson,
+				)
+			},
+		},
+		{
+			name: "bad authorized",
+			fields: fields{
+				Logger:       l,
+				RefreshToken: "superrefreshtoken",
+				AppKey:       "appkey",
+				AppSecret:    "appsecret",
+				filesClient:  nil,
+				accessToken:  "",
+			},
+			wantAccessToken: "",
+			wantErr:         true,
+			setmock: func() {
+				httpmock.RegisterResponder(
+					"POST",
+					"https://api.dropbox.com/oauth2/token",
+					httpmock.NewStringResponder(400, "bad authorized"),
+				)
+			},
+		},
+		{
+			name: "not found",
+			fields: fields{
+				Logger:       l,
+				RefreshToken: "superrefreshtoken",
+				AppKey:       "appkey",
+				AppSecret:    "appsecret",
+				filesClient:  nil,
+				accessToken:  "",
+			},
+			wantAccessToken: "",
+			wantErr:         true,
+			setmock: func() {
+				httpmock.RegisterResponder(
+					"POST",
+					"https://api.dropbox.com/oauth2/token",
+					httpmock.NewStringResponder(404, "not found"),
+				)
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
