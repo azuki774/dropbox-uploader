@@ -4,6 +4,7 @@ go 1.18
 
 require (
 	github.com/dropbox/dropbox-sdk-go-unofficial/v6 v6.0.4
+	github.com/jarcoal/httpmock v1.3.0
 	github.com/spf13/cobra v1.5.0
 	go.uber.org/zap v1.23.0
 )

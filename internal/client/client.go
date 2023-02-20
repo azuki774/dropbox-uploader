@@ -14,7 +14,7 @@ import (
 )
 
 type Client struct {
-	Logger zap.Logger
+	Logger *zap.Logger
 	// SrcRootDir   string -> usecase?
 	// DstRootDir   string
 	RefreshToken string
@@ -25,8 +25,8 @@ type Client struct {
 	accessToken string
 }
 
-// fetchNewRefreshToken は 新しい accessTokenを取得する
-func (c *Client) fetchNewRefreshToken() (accessToken string, err error) {
+// fetchNewAccessToken は 新しい accessTokenを取得する
+func (c *Client) fetchNewAccessToken() (accessToken string, err error) {
 	endpoint := "https://api.dropbox.com/oauth2/token"
 	reqbody := fmt.Sprintf("refresh_token=%s&grant_type=refresh_token", c.RefreshToken)
 	reader := strings.NewReader(reqbody)
@@ -51,7 +51,6 @@ func (c *Client) fetchNewRefreshToken() (accessToken string, err error) {
 	if err != nil {
 		return "", err
 	}
-
 	return resp.AccessToken, nil
 }
 
@@ -69,7 +68,7 @@ func (c *Client) newFilesClient() files.Client {
 func (c *Client) UploadFile(path string, content io.Reader) (err error) {
 	if c.accessToken == "" { // AccessToken が未設定ならば、RefreshToken を使った先に取得する
 		c.Logger.Info("try to fetch new access token")
-		c.accessToken, err = c.fetchNewRefreshToken()
+		c.accessToken, err = c.fetchNewAccessToken()
 		if err != nil {
 			c.Logger.Error("failed to fetch new access token")
 			return err

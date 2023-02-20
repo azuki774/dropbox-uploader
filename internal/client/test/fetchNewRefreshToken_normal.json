@@ -1,0 +1,5 @@
+{
+    "access_token": "superaccesstoken",
+    "token_type": "refresh_token",
+    "expires_in": 14400
+}
