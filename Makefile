@@ -1,3 +1,4 @@
+SHELL=/bin/bash
 BIN_DIR:= ./build/bin
 CONTAINER_NAME:=azuki774/dropbox-uploader
 .PHONY: build bin test start stop clean
