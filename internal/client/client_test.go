@@ -246,6 +246,54 @@ func TestClient_UploadFile(t *testing.T) {
 				)
 			},
 		},
+		{
+			name: "failed (dropbox)",
+			fields: fields{
+				Logger:       l,
+				RefreshToken: "super_refresh_token",
+				AppKey:       "appkey",
+				AppSecret:    "appsecret",
+				filesClient:  nil,
+				accessToken:  "super_access_token",
+			},
+			args: args{
+				ctx:        context.Background(),
+				srcFile:    "./test/cacao.png",
+				remoteFile: "/cacao.png",
+			},
+			wantErr: true,
+			setmock: func() {
+				httpmock.RegisterResponder(
+					"POST",
+					"https://content.dropboxapi.com/2/files/upload",
+					httpmock.NewStringResponder(400, "bad authorized"),
+				)
+			},
+		},
+		{
+			name: "failed (uploader)",
+			fields: fields{
+				Logger:       l,
+				RefreshToken: "super_refresh_token",
+				AppKey:       "appkey",
+				AppSecret:    "appsecret",
+				filesClient:  nil,
+				accessToken:  "super_access_token",
+			},
+			args: args{
+				ctx:        context.Background(),
+				srcFile:    "./test/not_found.png",
+				remoteFile: "/not_found.png",
+			},
+			wantErr: true,
+			setmock: func() {
+				httpmock.RegisterResponder(
+					"POST",
+					"https://content.dropboxapi.com/2/files/upload",
+					httpmock.NewStringResponder(400, "bad authorized"),
+				)
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
