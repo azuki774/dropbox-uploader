@@ -1,19 +1,20 @@
 # dropbox-uploader
-dropbox-uploader provides a server for uploading dropbox.
-- Usage
-  ```
-  $ curl -XPOST -F "file=@<upload file>" http://localhost:8080/upload?path=<dropbox path>
-  ```
-  - Ex. `curl -XPOST -F "file=testimage.jpg" http://localhost:8080/upload?path=/testpath/testimage.jpg`
+ローカルのディレクトリを指定すると、そのディレクトリをまるごと dropbox にアップロードする。
+その際に、`refresh_token` を環境変数で指定したものを利用し、都度 `access_token` を更新する。
 
-This program uses unonfficial SDK for Go : https://github.com/dropbox/dropbox-sdk-go-unofficial
-
-## Docker Usage (Use docker compose)
-```
-$ make start
+```bash
+APP_KEY=*** \ 
+APP_SECRET=*** \
+REFRESH_TOKEN=*** \
+./dropbox-uploader start
 ```
 
-## Get Token and Setting Environment
+
+## 制約
+- 1ファイルサイズ150MBまで
+- 現状は、既存ファイルがある場合は上書きしない仕様
+
+## Dropbox App登録（参考）
 1. Regist Your app
 ```
 https://www.dropbox.com/oauth2/authorize?client_id=<your App key>&response_type=code&token_access_type=offline
@@ -26,6 +27,3 @@ curl https://api.dropbox.com/oauth2/token \
     -d grant_type=authorization_code \
     -u <your app key>:<your secret>
 ```
-
-3. Set Your information
-- `/deployment/envfile`
