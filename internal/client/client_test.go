@@ -193,6 +193,36 @@ func TestClient_UploadFile(t *testing.T) {
 		setmock func()
 	}{
 		{
+			name: "ok (fetch new token)",
+			fields: fields{
+				Logger:       l,
+				RefreshToken: "super_refresh_token",
+				AppKey:       "appkey",
+				AppSecret:    "appsecret",
+				filesClient:  nil,
+				accessToken:  "",
+			},
+			args: args{
+				ctx:        context.Background(),
+				srcFile:    "./test/cacao.png",
+				remoteFile: "/cacao.png",
+			},
+			wantErr: false,
+			setmock: func() {
+				httpmock.RegisterResponder(
+					"POST",
+					"https://api.dropbox.com/oauth2/token",
+					fetchNewRefreshTokenNormalJson,
+				)
+
+				httpmock.RegisterResponder(
+					"POST",
+					"https://content.dropboxapi.com/2/files/upload",
+					uploadNormalJson,
+				)
+			},
+		},
+		{
 			name: "ok",
 			fields: fields{
 				Logger:       l,
