@@ -2,10 +2,12 @@ package client
 
 import (
 	"azuki774/dropbox-uploader/internal/model"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
@@ -14,9 +16,7 @@ import (
 )
 
 type Client struct {
-	Logger *zap.Logger
-	// SrcRootDir   string -> usecase?
-	// DstRootDir   string
+	Logger       *zap.Logger
 	RefreshToken string
 	AppKey       string
 	AppSecret    string
@@ -64,13 +64,13 @@ func (c *Client) newFilesClient() files.Client {
 	return fileClient
 }
 
-// UploadFile はファイルをアップロードする
-func (c *Client) UploadFile(path string, content io.Reader) (err error) {
+// UploadFile はファイルをアップロードする。
+func (c *Client) UploadFile(ctx context.Context, srcFile string, remoteFile string) (err error) {
 	if c.accessToken == "" { // AccessToken が未設定ならば、RefreshToken を使った先に取得する
 		c.Logger.Info("try to fetch new access token")
 		c.accessToken, err = c.fetchNewAccessToken()
 		if err != nil {
-			c.Logger.Error("failed to fetch new access token")
+			c.Logger.Error("failed to fetch new access token", zap.Error(err))
 			return err
 		}
 		c.Logger.Info("fetch new access token sucessfully")
@@ -81,8 +81,15 @@ func (c *Client) UploadFile(path string, content io.Reader) (err error) {
 		c.filesClient = c.newFilesClient()
 	}
 
-	arg := files.NewUploadArg(path)
-	_, err = c.filesClient.Upload(arg, content)
+	arg := files.NewUploadArg(remoteFile)
+
+	f, err := os.Open(srcFile)
+	if err != nil {
+		c.Logger.Error("failed to open file", zap.String("src_file", srcFile), zap.Error(err))
+		return err
+	}
+
+	_, err = c.filesClient.Upload(arg, f)
 	if err != nil {
 		return err
 	}
